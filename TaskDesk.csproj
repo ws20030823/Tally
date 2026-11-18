@@ -22,7 +22,6 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Remove="Tests/**/*.cs" />
     <Page Remove="Tests/**/*.xaml" />
-    <PackageReference Include="LiquidGlass.Wpf" Version="1.0.0" />
     <None Update="ThirdParty/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

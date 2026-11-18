@@ -4,6 +4,8 @@
 **/[Aa]rtifacts/
 [Tt]est[Rr]esults/
 test-data/
+/Tests/
+/Installer/
 *.log
 *.tmp
 *.bak

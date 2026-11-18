@@ -22,9 +22,6 @@ namespace TaskDesk;
 public partial class MainWindow : FluentWindow
 {
     public MainViewModel ViewModel { get; }
-    public static readonly DependencyProperty GlassBackdropProperty = DependencyProperty.Register(
-        nameof(GlassBackdrop), typeof(TaskDesk.Controls.LibraryGlassBackdrop), typeof(MainWindow));
-    public TaskDesk.Controls.LibraryGlassBackdrop? GlassBackdrop => (TaskDesk.Controls.LibraryGlassBackdrop?)GetValue(GlassBackdropProperty);
     private bool preview;
     private readonly string miniSettingsPath;
     private readonly MiniWindowSettings miniSettings;
