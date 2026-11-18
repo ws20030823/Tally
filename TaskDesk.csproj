@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Product>Tally</Product>
+    <AssemblyTitle>Tally</AssemblyTitle>
+    <Description>Tally — a simple desktop task list.</Description>
+    <AssemblyName>TaskDesk</AssemblyName>
+    <RootNamespace>TaskDesk</RootNamespace>
+    <ApplicationIcon>Assets/Icons/Tally.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.7</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets/Icons/TaskDeskIcons.ttf" />
+    <Resource Include="Assets/Icons/Tally.png" />
+    <Resource Include="Assets/Icons/Tally.ico" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Remove="Tests/**/*.cs" />
+    <Page Remove="Tests/**/*.xaml" />
+    <PackageReference Include="LiquidGlass.Wpf" Version="1.0.0" />
+    <None Update="ThirdParty/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

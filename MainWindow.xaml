@@ -1,0 +1,335 @@
+<ui:FluentWindow x:Class="TaskDesk.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:icons="clr-namespace:TaskDesk.Controls" xmlns:behaviors="clr-namespace:TaskDesk.Behaviors" Icon="Assets/Icons/Tally.ico" Title="Tally" Width="1280" Height="800" MinWidth="980" MinHeight="660" WindowStartupLocation="CenterScreen" ExtendsContentIntoTitleBar="True" WindowCornerPreference="Round" WindowBackdropType="None" Background="{DynamicResource AppBackground}" Foreground="{DynamicResource Ink}" FontFamily="{StaticResource AppFontFamily}" FontSize="14" UseLayoutRounding="True" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
+
+  <Grid x:Name="AppRoot" Background="{DynamicResource AppBackground}">
+
+    <Grid x:Name="WindowBackdrop" Background="{Binding Background,ElementName=AppRoot}" IsHitTestVisible="False"/>
+
+    <Grid x:Name="FullLayout">
+
+      <Grid.RowDefinitions><RowDefinition Height="52" /><RowDefinition Height="*" /><RowDefinition Height="36" /></Grid.RowDefinitions>
+
+      <ui:TitleBar FontFamily="{StaticResource AppFontFamily}" x:Name="WindowTitle" Title="" Height="48" Foreground="{DynamicResource Ink}" ShowHelp="False">
+        <ui:TitleBar.Header>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+            <Image Source="Assets/Icons/Tally.png" Width="30" Height="30" Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+            <TextBlock Text="Tally" FontFamily="{StaticResource AppFontFamily}" FontSize="17" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+        </ui:TitleBar.Header>
+      </ui:TitleBar>
+
+      <Grid Grid.Row="1" Margin="20,8,20,12">
+
+        <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" MinWidth="320" /><ColumnDefinition><ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding HasSelection}" Value="True"><Setter Property="Width" Value="18"/></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style></ColumnDefinition><ColumnDefinition><ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding HasSelection}" Value="True"><Setter Property="Width" Value="300"/></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style></ColumnDefinition></Grid.ColumnDefinitions>
+
+        <Grid>
+
+        <Border x:Name="SidebarSurface" Background="{DynamicResource SidebarFill}" Style="{StaticResource GlassPane}">
+
+            <DockPanel LastChildFill="True" Margin="16,22,16,14">
+
+              <StackPanel DockPanel.Dock="Bottom"><TextBlock Text="主题" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="8,4,0,6"/><ComboBox x:Name="ThemePicker" DisplayMemberPath="Title" SelectedValuePath="Key" SelectionChanged="ThemeSelectionChanged" FontSize="11" Padding="8,6" AutomationProperties.Name="界面主题"/><Separator Margin="5,12" Opacity=".25" /><StackPanel Orientation="Horizontal" Margin="8,4"><Ellipse Width="6" Height="6" Fill="#89AC9C" Margin="0,0,8,0" /><ui:Button Content="数据文件夹" Command="{Binding OpenDataFolderCommand}" ToolTip="{Binding DataPath}" Style="{StaticResource QuietButton}" Padding="0" FontSize="11" /></StackPanel></StackPanel>
+
+              <ScrollViewer behaviors:SmoothScroll.IsEnabled="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Navigation}" ItemTemplate="{StaticResource NavTemplate}" />
+
+                <TextBlock Text="清单" ToolTip="右键点击清单可重命名" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="14,30,0,10" />
+
+                <ItemsControl ItemsSource="{Binding CustomLists}">
+                  <ItemsControl.ItemTemplate><DataTemplate>
+                    <Grid>
+                      <ui:Button Style="{StaticResource NavButton}" Command="{Binding DataContext.NavigateCommand,RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Title}">
+                        <ui:Button.ContextMenu><ContextMenu FontFamily="{StaticResource AppFontFamily}"><MenuItem Header="重命名清单…" Click="RenameListClick"/></ContextMenu></ui:Button.ContextMenu><Grid Margin="0,0,24,0"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                          <ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" Glyph="{Binding Icon}" FontSize="18" />
+                          <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Title}" />
+                          <TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="12" Opacity=".65" VerticalAlignment="Center" Margin="3,0,0,0" />
+                        </Grid>
+                      </ui:Button>
+                      <ui:Button Icon="{icons:Iconfont Delete,Size=14}" Style="{StaticResource QuietButton}" Padding="4" Width="24" Height="28" Margin="0,0,7,0" HorizontalAlignment="Right" VerticalAlignment="Center" Click="DeleteListClick" ToolTip="删除清单（任务会保留）" AutomationProperties.Name="{Binding Title,StringFormat=删除清单：{0}}" />
+                    </Grid>
+                  </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Style="{StaticResource CompactQuickAddPane}" Margin="0,18,0,8">
+
+                  <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+
+                    <ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" Glyph="{x:Static icons:AppIcons.Add}" FontSize="14" VerticalAlignment="Center" IsHitTestVisible="False" />
+
+                    <ui:TextBox Grid.Column="1" Text="{Binding NewListName,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="新清单名称" FontSize="12" Padding="3,6" MinWidth="0" MaxLength="24" Style="{StaticResource InlineGlassInput}" AutomationProperties.Name="新清单名称">
+
+                      <ui:TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding AddListCommand}" /></ui:TextBox.InputBindings>
+
+                    </ui:TextBox>
+
+                    <ui:Button Grid.Column="2" Content="添加" Command="{Binding AddListCommand}" Style="{StaticResource CompactAddButton}" Margin="3,0,0,0" ToolTip="创建清单" AutomationProperties.Name="创建清单" />
+
+                  </Grid>
+
+                </Border>
+
+              </StackPanel></ScrollViewer>
+
+            </DockPanel>
+
+        </Border>
+
+        </Grid>
+
+        <Grid Grid.Column="2" Margin="4,10,4,12">
+
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+
+          <Grid Margin="3,0,3,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding ViewTitle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ViewTitle}" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,7"/><TextBlock Text="{Binding DateLabel}" FontSize="12" Foreground="{DynamicResource SecondaryInk}"/></StackPanel><ui:Button Grid.Column="1" Margin="8,0,0,0" Content="Mini 窗口" Click="EnterMiniClick" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource QuietButton}" FontSize="12" ToolTip="切换到精简待办窗口 (Ctrl+M)" AutomationProperties.Name="切换到 Mini 窗口"/></Grid>
+
+          <Grid Grid.Row="1" Margin="0,0,0,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="125" /></Grid.ColumnDefinitions><ui:TextBox x:Name="SearchBox" ToolTip="搜索当前视图；无结果时可搜索全部任务" Text="{Binding Search,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="搜索当前视图的任务或备注…" Icon="{icons:Iconfont Search}" Style="{StaticResource GlassInput}" AutomationProperties.Name="搜索任务" /><ComboBox Grid.Column="2" ItemsSource="{Binding SortOptions}" SelectedIndex="{Binding SortIndex}"  VerticalContentAlignment="Center" AutomationProperties.Name="排序方式" FontSize="12" /></Grid>
+
+          <Grid Grid.Row="2" Margin="0,0,0,12"><Border x:Name="QuickAddSurface" Style="{StaticResource QuickAddPane}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ui:TextBox x:Name="NewTaskBox" Text="{Binding NewTitle,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="添加任务，按 Enter 添加" Icon="{icons:Iconfont Add}" Style="{StaticResource InlineGlassInput}" MaxLength="100" AutomationProperties.Name="新任务标题"><ui:TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding AddTaskCommand}" /></ui:TextBox.InputBindings></ui:TextBox><ui:Button Grid.Column="1" Content="添加" Command="{Binding AddTaskCommand}" Style="{StaticResource PrimaryGlassButton}" Margin="4,0,0,0" /></Grid></Border></Grid>
+
+          <StackPanel Grid.Row="3" Margin="3,0,3,8">
+            <WrapPanel Visibility="{Binding IsPlannedView,Converter={StaticResource BoolVisibility}}" Margin="0,0,0,8"><TextBlock Text="新任务截止日期" VerticalAlignment="Center" Margin="3,0,8,0" FontSize="12"/><DatePicker x:Name="NewTaskDatePicker" SelectedDate="{Binding NewTaskDate}" Width="140" AutomationProperties.Name="新任务截止日期" DateValidationError="DateValidationError" SelectedDateChanged="DateSelectionChanged"/><TextBlock x:Name="NewTaskDateFeedback" Style="{StaticResource ValidationMessage}" Margin="6,0"/></WrapPanel>
+            <Border Background="{DynamicResource AccentSoftFill}" CornerRadius="8" Padding="8,4" Margin="0,0,0,8" Visibility="{Binding ShowYesterdayBanner,Converter={StaticResource BoolVisibility}}"><DockPanel><ui:Button DockPanel.Dock="Right" Content="{Binding YesterdayAction}" Command="{Binding ToggleYesterdayCommand}" Style="{StaticResource QuietButton}"/><TextBlock Text="{Binding YesterdayLabel}" VerticalAlignment="Center" FontSize="12"/></DockPanel></Border>
+
+            <WrapPanel Margin="0,0,0,4">
+
+              <ComboBox ItemsSource="{Binding DateModeOptions}" SelectedIndex="{Binding DateModeIndex}" Width="132" Padding="9,7" FontSize="12" Margin="0,0,10,6" AutomationProperties.Name="日期分组依据" ToolTip="默认排序按日期分组；优先级和截止日期排序跨创建日期排列。完成日期仅显示已完成任务" />
+
+              <TextBlock Text="日期" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryInk}" FontSize="12" Margin="0,0,6,6" />
+
+              <DatePicker x:Name="HistoryDatePicker" DateValidationError="DateValidationError" SelectedDateChanged="DateSelectionChanged" SelectedDate="{Binding HistoryDate}" SelectedDateFormat="Short" Width="140" Padding="7" FontSize="12" Margin="0,0,6,6" AutomationProperties.Name="按日期查找任务" ToolTip="选择或输入日期，只查看这一天的记录；留空显示全部日期" />
+
+              <ui:Button Content="全部日期" Command="{Binding ClearHistoryDateCommand}" Visibility="{Binding HasDateFilter,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}" FontSize="11" Margin="0,0,0,6" />
+
+            </WrapPanel>
+
+            <TextBlock x:Name="HistoryDateFeedback" Style="{StaticResource ValidationMessage}" />
+
+            <Grid><TextBlock Text="{Binding CountLabel}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /><TextBlock Text="{Binding DateScopeLabel}" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /></Grid>
+
+          </StackPanel>
+
+          <Grid Grid.Row="4">
+
+            <ui:ListView x:Name="TaskList" behaviors:SmoothScroll.IsEnabled="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="1,1" VirtualizingPanel.CacheLengthUnit="Page" ScrollViewer.CanContentScroll="True" SelectionMode="Single" ItemsSource="{Binding TasksView}" SelectedItem="{Binding SelectedTask,Mode=TwoWay}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" AutomationProperties.Name="任务列表">
+
+              <ui:ListView.Resources><SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" /><SolidColorBrush x:Key="ListViewItemPillFillBrush" Color="Transparent" /></ui:ListView.Resources>
+
+              <ui:ListView.GroupStyle>
+
+                <GroupStyle>
+
+                  <GroupStyle.ContainerStyle>
+
+                    <Style TargetType="GroupItem">
+
+                      <Setter Property="Margin" Value="0,0,0,8" />
+
+                      <Setter Property="VerticalAlignment" Value="Top" />
+
+                      <Setter Property="Template">
+
+                        <Setter.Value>
+
+                          <ControlTemplate TargetType="GroupItem">
+
+                            <Expander Style="{StaticResource TaskDateExpander}" IsExpanded="{Binding Name.IsExpanded,Mode=TwoWay}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch">
+
+                              <Expander.Header><StackPanel Orientation="Horizontal" Margin="0"><TextBlock Text="{Binding Name.Label}" FontSize="12" FontWeight="SemiBold" /><TextBlock Text="{Binding ItemCount,StringFormat={}（{0} 项）}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="5,0,0,0" VerticalAlignment="Center" /></StackPanel></Expander.Header>
+
+                              <ItemsPresenter Margin="0,6,0,0" />
+
+                            </Expander>
+
+                          </ControlTemplate>
+
+                        </Setter.Value>
+
+                      </Setter>
+
+                    </Style>
+
+                  </GroupStyle.ContainerStyle>
+
+                </GroupStyle>
+
+              </ui:ListView.GroupStyle>
+
+              <ui:ListView.ItemContainerStyle><Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}"><Setter Property="FocusVisualStyle" Value="{x:Null}" /><Setter Property="Border.CornerRadius" Value="18" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,10" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style></ui:ListView.ItemContainerStyle>
+
+              <ui:ListView.ItemTemplate><DataTemplate>
+                <Border CornerRadius="18" BorderThickness="1.5" Padding="15,13" MinHeight="77">
+                  <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource GlassFill}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected,RelativeSource={RelativeSource AncestorType=ui:ListViewItem}}" Value="True"><Setter Property="Background" Value="{DynamicResource TaskSelectionFill}"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                  <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <CheckBox FontFamily="{StaticResource AppFontFamily}" IsChecked="{Binding IsCompleted,UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0" VerticalAlignment="Center" ToolTip="完成或恢复任务" AutomationProperties.Name="{Binding Title,StringFormat=完成或恢复任务：{0}}"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Opacity" Value="0.55"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                      <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="14" Foreground="{DynamicResource Ink}"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="TextDecorations" Value="Strikethrough"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                      <WrapPanel Margin="0,7,0,0">
+                        <Border CornerRadius="5" Padding="6,2" Margin="0,0,6,4">
+                          <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#16707886"/><Style.Triggers><DataTrigger Binding="{Binding Priority}" Value="0"><Setter Property="Background" Value="#30D64848"/></DataTrigger><DataTrigger Binding="{Binding Priority}" Value="1"><Setter Property="Background" Value="#25D69435"/></DataTrigger><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Background" Value="#16707886"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                          <TextBlock Text="{Binding PriorityLabel}" FontSize="11"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#59616B"/><Style.Triggers><DataTrigger Binding="{Binding Priority}" Value="0"><Setter Property="Foreground" Value="#A52C35"/></DataTrigger><DataTrigger Binding="{Binding Priority}" Value="1"><Setter Property="Foreground" Value="#875710"/></DataTrigger><DataTrigger Binding="{Binding IsCompleted}" Value="True"><Setter Property="Foreground" Value="#59616B"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                        </Border>
+                        <Border CornerRadius="5" Padding="6,2" Margin="0,0,6,4" Visibility="{Binding HasDueDate,Converter={StaticResource BoolVisibility}}" ToolTip="{Binding DueDate,StringFormat=截止日期：{0:yyyy年M月d日}}">
+                          <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#12707886"/><Style.Triggers><DataTrigger Binding="{Binding IsDueToday}" Value="True"><Setter Property="Background" Value="#30D69435"/></DataTrigger><DataTrigger Binding="{Binding IsOverdue}" Value="True"><Setter Property="Background" Value="#30D64848"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                          <TextBlock Text="{Binding DueLabel}" FontSize="11"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#59616B"/><Style.Triggers><DataTrigger Binding="{Binding IsDueToday}" Value="True"><Setter Property="Foreground" Value="#875710"/><Setter Property="FontWeight" Value="SemiBold"/></DataTrigger><DataTrigger Binding="{Binding IsOverdue}" Value="True"><Setter Property="Foreground" Value="#A52C35"/><Setter Property="FontWeight" Value="SemiBold"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                        </Border>
+                      </WrapPanel>
+                      <TextBlock Text="{Binding ListSummary}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <ui:Button Grid.Column="2" Command="{Binding DataContext.ToggleImportantCommand,RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Margin="7,0,0,0" VerticalAlignment="Center" ToolTip="重点关注：标记或取消重要" AutomationProperties.Name="标记或取消重要">
+                      <ui:Button.Icon><ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" FontSize="18"><ui:FontIcon.Style><Style TargetType="ui:FontIcon"><Setter Property="Glyph" Value="{x:Static icons:AppIcons.Important}"/><Style.Triggers><DataTrigger Binding="{Binding IsImportant}" Value="True"><Setter Property="Glyph" Value="{x:Static icons:AppIcons.ImportantFilled}"/></DataTrigger></Style.Triggers></Style></ui:FontIcon.Style></ui:FontIcon></ui:Button.Icon>
+                      <ui:Button.Style><Style TargetType="ui:Button" BasedOn="{StaticResource QuietButton}"><Style.Triggers><DataTrigger Binding="{Binding IsImportant}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentSoftFill}"/><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/></DataTrigger></Style.Triggers></Style></ui:Button.Style>
+                    </ui:Button>
+                  </Grid>
+                </Border>
+              </DataTemplate></ui:ListView.ItemTemplate>
+
+            </ui:ListView>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="330" Visibility="{Binding HasTasks,Converter={StaticResource InverseVisibility}}">
+              <ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" Glyph="{x:Static icons:AppIcons.Completed}" FontSize="40" Foreground="#8F98A2"/>
+              <TextBlock Text="{Binding EmptyTitle}" Margin="0,16,0,7" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding EmptyHint}" FontSize="12" Foreground="{DynamicResource SecondaryInk}" TextWrapping="Wrap" TextAlignment="Center"/>
+              <WrapPanel HorizontalAlignment="Center" Margin="0,8,0,0"><ui:Button Content="清除搜索" Command="{Binding ClearSearchCommand}" Visibility="{Binding HasSearch,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}"/><ui:Button Content="搜索全部任务" Command="{Binding SearchAllCommand}" Visibility="{Binding HasSearch,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}"/><ui:Button Content="全部日期" Command="{Binding ClearHistoryDateCommand}" Visibility="{Binding HasDateFilter,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}"/></WrapPanel>
+            </StackPanel>
+
+          </Grid>
+
+          <StackPanel Grid.Row="5" Margin="3,10,3,0"><Grid><TextBlock Text="当前清单进度" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /><TextBlock Text="{Binding ProgressLabel}" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /></Grid><ProgressBar Value="{Binding Progress,Mode=OneWay}" Maximum="100" Height="5" Margin="0,9,0,0" Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource ProgressTrack}" BorderThickness="0" /></StackPanel>
+
+        </Grid>
+
+        <Grid Grid.Column="4" Visibility="{Binding HasSelection,Converter={StaticResource BoolVisibility}}">
+
+        <Border Style="{StaticResource GlassPane}">
+
+          <Grid Margin="19,20">
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasSelection,Converter={StaticResource InverseVisibility}}"><ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" Glyph="{x:Static icons:AppIcons.List}" FontSize="35" Foreground="#9A97AE" /><TextBlock Text="未选择任务" Margin="0,14,0,5" HorizontalAlignment="Center" /><TextBlock Text="点击任务查看详情" FontSize="12" Foreground="{DynamicResource SecondaryInk}" /></StackPanel>
+
+            <DockPanel Visibility="{Binding HasSelection,Converter={StaticResource BoolVisibility}}">
+
+              <Grid DockPanel.Dock="Top" Margin="2,0,0,14"><TextBlock Text="任务详情" FontSize="12" Foreground="{DynamicResource SecondaryInk}" VerticalAlignment="Center" /><ui:Button Icon="{icons:Iconfont Close}" Command="{Binding CloseDetailsCommand}" HorizontalAlignment="Right" Style="{StaticResource QuietButton}" ToolTip="关闭详情 (Esc)" AutomationProperties.Name="关闭详情" /></Grid>
+
+              <Grid DockPanel.Dock="Bottom" Margin="0,17,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ui:Button Content="删除任务" Command="{Binding DeleteTaskCommand}" Foreground="#A05D65" HorizontalAlignment="Left" Style="{StaticResource QuietButton}" /><ui:Button Grid.Column="1" Content="立即保存 / 重试" Command="{Binding SaveCommand}" Style="{StaticResource QuietButton}" ToolTip="修改会自动保存，也可在此立即保存或重试" /></Grid>
+
+              <ScrollViewer behaviors:SmoothScroll.IsEnabled="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,0,5,0">
+                <TextBlock Text="{Binding SaveState}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="2,0,0,10" TextWrapping="Wrap"/>
+                <ui:Button Content="加入今天" Command="{Binding MoveToTodayCommand}" Visibility="{Binding ReviewingYesterday,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <ui:TextBox Text="{Binding EditTitle,UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="False" FontSize="18" FontWeight="SemiBold" Style="{StaticResource GlassInput}" Padding="10" MaxLength="100" AutomationProperties.Name="任务标题" AutomationProperties.HelpText="{Binding TitleFeedback}" />
+
+                <TextBlock Text="{Binding TitleFeedback}" Style="{StaticResource ValidationMessage}" Visibility="{Binding HasTitleFeedback,Converter={StaticResource BoolVisibility}}" />
+
+                <StackPanel Margin="2,8,0,0"><TextBlock Text="{Binding SelectedTask.CreatedTimeLabel}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /><TextBlock Text="{Binding SelectedTask.CompletedTimeLabel}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="0,4,0,0" Visibility="{Binding SelectedTask.IsCompleted,Converter={StaticResource BoolVisibility}}" /></StackPanel>
+
+                <TextBlock Text="所属清单" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="TaskListPicker" ItemsSource="{Binding Lists}" SelectedItem="{Binding EditList}"  Padding="10,8" AutomationProperties.Name="所属清单" />
+
+                <TextBlock Text="截止日期" Style="{StaticResource FieldLabel}" /><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="36" /></Grid.ColumnDefinitions><DatePicker x:Name="DueDatePicker" DateValidationError="DateValidationError" SelectedDateChanged="DateSelectionChanged" SelectedDate="{Binding EditDate}" SelectedDateFormat="Short"  Padding="7" AutomationProperties.Name="截止日期" /><ui:Button Grid.Column="1" Icon="{icons:Iconfont Close}" Command="{Binding ClearDateCommand}" Click="ClearDueDateFeedback" Style="{StaticResource QuietButton}" ToolTip="清除截止日期" AutomationProperties.Name="清除截止日期" /></Grid>
+
+                <TextBlock x:Name="DueDateFeedback" Style="{StaticResource ValidationMessage}" />
+
+                <TextBlock Text="优先级" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding PriorityOptions}" SelectedIndex="{Binding EditPriority}"  Padding="10,8" AutomationProperties.Name="优先级" />
+
+                <CheckBox FontFamily="{StaticResource AppFontFamily}" Content="加入“今天”" IsChecked="{Binding EditDay}" Margin="2,21,0,3" FontSize="12" />
+
+                <Grid Margin="2,23,0,9"><TextBlock Text="子任务步骤" FontSize="12" /><TextBlock Text="{Binding SelectedTask.StepsSummary}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" HorizontalAlignment="Right" /></Grid>
+
+                <ItemsControl ItemsSource="{Binding SelectedTask.Steps}">
+
+                  <ItemsControl.ItemTemplate><DataTemplate>
+
+                    <Grid Margin="2,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+
+                      <CheckBox FontFamily="{StaticResource AppFontFamily}" IsChecked="{Binding IsCompleted,UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch" Margin="0,3,6,3" AutomationProperties.Name="{Binding Title}">
+
+                        <CheckBox.ContextMenu><ContextMenu FontFamily="{StaticResource AppFontFamily}"><MenuItem Header="重命名步骤…" Click="RenameStepClick"/></ContextMenu></CheckBox.ContextMenu><TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" ToolTip="右键可重命名步骤"/>
+
+                      </CheckBox>
+
+                      <ui:Button Grid.Column="1" Icon="{icons:Iconfont Delete}" Command="{Binding DataContext.DeleteStepCommand,RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource QuietButton}" Padding="6" VerticalAlignment="Center" ToolTip="删除步骤" AutomationProperties.Name="{Binding Title,StringFormat=删除步骤：{0}}" />
+
+                    </Grid>
+
+                  </DataTemplate></ItemsControl.ItemTemplate>
+
+                </ItemsControl>
+
+                <Border Style="{StaticResource CompactQuickAddPane}" Margin="0,8,0,0">
+
+                  <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+
+                    <ui:FontIcon FontFamily="{x:Static icons:AppIcons.Family}" Glyph="{x:Static icons:AppIcons.Add}" FontSize="14" VerticalAlignment="Center" IsHitTestVisible="False" />
+
+                    <ui:TextBox Grid.Column="1" Text="{Binding NewStepTitle,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="添加一个步骤" FontSize="12" Padding="3,6" MinWidth="0" MaxLength="80" Style="{StaticResource InlineGlassInput}" AutomationProperties.Name="新步骤">
+
+                      <ui:TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding AddStepCommand}" /></ui:TextBox.InputBindings>
+
+                    </ui:TextBox>
+
+                    <ui:Button Grid.Column="2" Content="添加" Command="{Binding AddStepCommand}" Style="{StaticResource CompactAddButton}" Margin="3,0,0,0" ToolTip="添加步骤" AutomationProperties.Name="添加步骤" />
+
+                  </Grid>
+
+                </Border>
+
+                <TextBlock Text="备注" Style="{StaticResource FieldLabel}" /><ui:TextBox Text="{Binding EditNotes,UpdateSourceTrigger=PropertyChanged}" PlaceholderText="补充任务的细节…" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="100" MaxLength="4000" VerticalScrollBarVisibility="Auto" Style="{StaticResource GlassInput}" FontSize="12" AutomationProperties.Name="任务备注" />
+
+              </StackPanel></ScrollViewer>
+
+            </DockPanel>
+
+          </Grid>
+
+        </Border>
+
+        </Grid>
+
+      </Grid>
+
+      <Grid Grid.Row="2" Margin="30,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding Status}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" TextTrimming="CharacterEllipsis" MaxWidth="480" VerticalAlignment="Center" ToolTip="{Binding Status}" /><ui:Button Content="撤销" Command="{Binding UndoDeleteCommand}" Visibility="{Binding CanUndo,Converter={StaticResource BoolVisibility}}" Style="{StaticResource QuietButton}" Padding="8,2" FontSize="11" Margin="4,0" /></StackPanel><StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding SaveState}" ToolTip="{Binding DataPath}" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="0,0,20,0" /><TextBlock Text="Ctrl+N 新建  ·  Ctrl+K 搜索" FontSize="11" Foreground="{DynamicResource SecondaryInk}" /></StackPanel></Grid>
+
+    </Grid>
+
+
+    <Grid x:Name="MiniLayout" Visibility="Collapsed">
+      <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="30"/></Grid.RowDefinitions>
+      <ui:TitleBar FontFamily="{StaticResource AppFontFamily}" x:Name="MiniTitle" Title="Tally Mini" Height="40" FontSize="12" ShowMaximize="False" CanMaximize="False" ShowHelp="False"/>
+      <Grid Grid.Row="1" Margin="12,2,12,10">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <ComboBox x:Name="MiniScopePicker" ItemsSource="{Binding MiniScopes}" DisplayMemberPath="Title" SelectedValuePath="Key" SelectedValue="{Binding MiniScopeKey,Mode=TwoWay}" FontSize="12" Padding="8,6" MinWidth="80" AutomationProperties.Name="Mini 待办清单"/>
+        <CheckBox FontFamily="{StaticResource AppFontFamily}" Grid.Column="1" Content="置顶" IsChecked="{Binding Topmost,RelativeSource={RelativeSource AncestorType=Window},Mode=TwoWay}" VerticalAlignment="Center" Margin="10,0,5,0" FontSize="11" ToolTip="让 Mini 窗口保持在其他窗口上方" AutomationProperties.Name="Mini 窗口置顶"/>
+        <ui:Button Grid.Column="2" Content="展开" Click="ExitMiniClick" Style="{StaticResource QuietButton}" FontSize="11" Padding="6" ToolTip="返回完整窗口 (Ctrl+M / Esc)" AutomationProperties.Name="返回完整窗口"/>
+      </Grid>
+      <Grid Grid.Row="2" Margin="10,0,10,0">
+        <ui:ListView x:Name="MiniTaskList" ItemsSource="{Binding MiniTasksView}" Background="Transparent" BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" behaviors:SmoothScroll.IsEnabled="True" AutomationProperties.Name="Mini 未完成任务">
+          <ui:ListView.ItemContainerStyle><Style TargetType="ui:ListViewItem" BasedOn="{StaticResource {x:Type ui:ListViewItem}}"><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,6"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Border.CornerRadius" Value="12"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/></Style></ui:ListView.ItemContainerStyle>
+          <ui:ListView.ItemTemplate><DataTemplate>
+            <Border CornerRadius="12" Background="{DynamicResource GlassFill}" Padding="10,9" BorderThickness="1" BorderBrush="{DynamicResource GlassEdge}">
+              <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <CheckBox FontFamily="{StaticResource AppFontFamily}" IsChecked="{Binding IsCompleted,UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,10,0" ToolTip="标记完成" AutomationProperties.Name="{Binding Title,StringFormat=Mini 完成任务：{0}}"/>
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource Ink}"/>
+                  <WrapPanel Margin="0,5,0,0">
+                    <Border CornerRadius="4" Padding="5,2" Margin="0,0,5,2">
+                      <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#16707886"/><Style.Triggers><DataTrigger Binding="{Binding Priority}" Value="0"><Setter Property="Background" Value="#30D64848"/></DataTrigger><DataTrigger Binding="{Binding Priority}" Value="1"><Setter Property="Background" Value="#25D69435"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                      <TextBlock Text="{Binding PriorityLabel}" FontSize="10.5"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#59616B"/><Style.Triggers><DataTrigger Binding="{Binding Priority}" Value="0"><Setter Property="Foreground" Value="#A52C35"/></DataTrigger><DataTrigger Binding="{Binding Priority}" Value="1"><Setter Property="Foreground" Value="#875710"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="5,2" Margin="0,0,0,2" Visibility="{Binding HasDueDate,Converter={StaticResource BoolVisibility}}" ToolTip="{Binding DueDate,StringFormat=截止日期：{0:yyyy年M月d日}}">
+                      <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#12707886"/><Style.Triggers><DataTrigger Binding="{Binding IsDueToday}" Value="True"><Setter Property="Background" Value="#30D69435"/></DataTrigger><DataTrigger Binding="{Binding IsOverdue}" Value="True"><Setter Property="Background" Value="#30D64848"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                      <TextBlock Text="{Binding DueLabel}" FontSize="10.5"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#59616B"/><Style.Triggers><DataTrigger Binding="{Binding IsDueToday}" Value="True"><Setter Property="Foreground" Value="#875710"/></DataTrigger><DataTrigger Binding="{Binding IsOverdue}" Value="True"><Setter Property="Foreground" Value="#A52C35"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                    </Border>
+                  </WrapPanel>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate></ui:ListView.ItemTemplate>
+        </ui:ListView>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15" Visibility="{Binding MiniHasTasks,Converter={StaticResource InverseVisibility}}"><TextBlock Text="暂时没有待办" HorizontalAlignment="Center" FontSize="14"/><TextBlock Text="{Binding MiniEmptyHint}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" Foreground="{DynamicResource SecondaryInk}" Margin="0,8,0,0"/></StackPanel>
+      </Grid>
+      <Grid Grid.Row="3" Margin="14,0,14,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><ui:Button x:Name="MiniThemeButton" Grid.Column="1" Click="ToggleThemeClick" Content="暖白" Style="{StaticResource QuietButton}" FontSize="10.5" Padding="5,0" Margin="6,0,0,0" AutomationProperties.Name="切换 Mini 主题"/><TextBlock Text="{Binding MiniCountLabel}" FontSize="10.5" Foreground="{DynamicResource SecondaryInk}" VerticalAlignment="Center"/><ui:Button Grid.Column="2" Content="{Binding SaveState}" Command="{Binding SaveCommand}" HorizontalAlignment="Right" Style="{StaticResource QuietButton}" FontSize="10.5" Padding="3,0" ToolTip="自动保存；点击可立即保存或重试" AutomationProperties.Name="Mini 保存或重试"/></Grid>
+    </Grid>
+  </Grid>
+
+</ui:FluentWindow>
+

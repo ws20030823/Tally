@@ -1,0 +1,60 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Color x:Key="AccentColor">#476B91</Color>
+  <Color x:Key="InputBaseColor">#FCFDFE</Color>
+  <Color x:Key="InputHoverColor">#EFF4F9</Color>
+  <Color x:Key="InputFocusedColor">#EBF2FA</Color>
+  <Color x:Key="PopupColor">#FCFDFE</Color>
+  <Color x:Key="PopupBorderColor">#D9E1E9</Color>
+  <Color x:Key="SystemAccentColor">#476B91</Color>
+  <Color x:Key="SystemAccentColorPrimary">#476B91</Color>
+  <Color x:Key="SystemAccentColorSecondary">#537DA6</Color>
+  <Color x:Key="SystemAccentColorTertiary">#385A7C</Color>
+  <Color x:Key="AccentFillColorDefault">#476B91</Color>
+  <Color x:Key="AccentFillColorSecondary">#537DA6</Color>
+  <Color x:Key="AccentFillColorTertiary">#385A7C</Color>
+  <SolidColorBrush x:Key="AppBackground" Color="#EDF1F5"/>
+  <SolidColorBrush x:Key="PaneFill" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="SidebarFill" Color="#E4EAF0"/>
+  <SolidColorBrush x:Key="Ink" Color="#253342"/>
+  <SolidColorBrush x:Key="SecondaryInk" Color="#687989"/>
+  <SolidColorBrush x:Key="LavenderInk" Color="#476B91"/>
+  <SolidColorBrush x:Key="AccentBrush" Color="#476B91"/>
+  <SolidColorBrush x:Key="AccentHover" Color="#537DA6"/>
+  <SolidColorBrush x:Key="AccentPressed" Color="#385A7C"/>
+  <SolidColorBrush x:Key="OnAccent" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="GlassEdge" Color="#D9E1E9"/>
+  <SolidColorBrush x:Key="GlassFill" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="InputGlass" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="InputGlassHover" Color="#EFF4F9"/>
+  <SolidColorBrush x:Key="InputGlassFocused" Color="#EBF2FA"/>
+  <SolidColorBrush x:Key="HoverFill" Color="#E7EFF7"/>
+  <SolidColorBrush x:Key="AccentSoftFill" Color="#E7EFF7"/>
+  <SolidColorBrush x:Key="TaskSelectionFill" Color="#E7EFF7"/>
+  <SolidColorBrush x:Key="ProgressTrack" Color="#D9E1E9"/>
+  <SolidColorBrush x:Key="PopupFill" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="PopupBorder" Color="#D9E1E9"/>
+  <SolidColorBrush x:Key="DestructiveBrush" Color="#A52C35"/>
+  <SolidColorBrush x:Key="SystemAccentColorBrush" Color="#476B91"/>
+  <SolidColorBrush x:Key="SystemAccentColorPrimaryBrush" Color="#476B91"/>
+  <SolidColorBrush x:Key="SystemAccentColorSecondaryBrush" Color="#537DA6"/>
+  <SolidColorBrush x:Key="SystemAccentColorTertiaryBrush" Color="#385A7C"/>
+  <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#476B91"/>
+  <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#537DA6"/>
+  <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#385A7C"/>
+  <SolidColorBrush x:Key="AccentFillColorSelectedTextBackgroundBrush" Color="#476B91"/>
+  <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#476B91"/>
+  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#537DA6"/>
+  <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#385A7C"/>
+  <SolidColorBrush x:Key="CheckBoxCheckGlyphForeground" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="TextControlBackground" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#EBF2FA"/>
+  <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#EFF4F9"/>
+  <SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="#EBF2FA"/>
+  <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#EFF4F9"/>
+  <SolidColorBrush x:Key="ComboBoxBorderBrushFocused" Color="Transparent"/>
+  <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#FCFDFE"/>
+  <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#D9E1E9"/>
+</ResourceDictionary>

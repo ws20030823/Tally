@@ -1,0 +1,55 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:TaskDesk" xmlns:glass="clr-namespace:TaskDesk.Controls">
+  <FontFamily x:Key="AppFontFamily">MiSans, Microsoft YaHei UI</FontFamily>
+  <BooleanToVisibilityConverter x:Key="BoolVisibility"/><local:InverseVisibilityConverter x:Key="InverseVisibility"/>
+  <!-- Native library control templates; palette resources update without rebuilding the window. -->
+  <Style x:Key="GlassPane" TargetType="Border"><Setter Property="CornerRadius" Value="18"/><Setter Property="Background" Value="{DynamicResource PaneFill}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="BorderThickness" Value="1"/></Style>
+  <Style x:Key="GlassButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="Appearance" Value="Secondary"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="Background" Value="{DynamicResource InputGlass}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="12"/><Setter Property="Padding" Value="16,9"/><Setter Property="MinHeight" Value="38"/>
+    <Setter Property="MouseOverBackground" Value="{DynamicResource HoverFill}"/><Setter Property="PressedBackground" Value="{DynamicResource AccentSoftFill}"/><Setter Property="MouseOverBorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="PressedBorderBrush" Value="{DynamicResource GlassEdge}"/>
+  </Style>
+  <Style x:Key="PrimaryGlassButton" TargetType="ui:Button" BasedOn="{StaticResource GlassButton}"><Setter Property="Background" Value="{DynamicResource AccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/><Setter Property="PressedForeground" Value="{DynamicResource OnAccent}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/><Setter Property="MouseOverBackground" Value="{DynamicResource AccentHover}"/><Setter Property="PressedBackground" Value="{DynamicResource AccentPressed}"/><Setter Property="MouseOverBorderBrush" Value="{DynamicResource AccentHover}"/><Setter Property="PressedBorderBrush" Value="{DynamicResource AccentPressed}"/></Style>
+  <Style x:Key="QuietButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}"><Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Appearance" Value="Transparent"/><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8"/><Setter Property="Foreground" Value="{DynamicResource SecondaryInk}"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/><Setter Property="MouseOverBackground" Value="{DynamicResource HoverFill}"/><Setter Property="PressedBackground" Value="{DynamicResource AccentSoftFill}"/><Setter Property="MouseOverBorderBrush" Value="Transparent"/><Setter Property="PressedBorderBrush" Value="Transparent"/></Style>
+  <Style x:Key="GlassInput" TargetType="ui:TextBox" BasedOn="{StaticResource DefaultUiTextBoxStyle}">
+    
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Background" Value="{DynamicResource InputGlass}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Border.CornerRadius" Value="12"/><Setter Property="Padding" Value="12,10"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+  <Style TargetType="ui:TextBox" BasedOn="{StaticResource GlassInput}"/>
+  <Style x:Key="InlineGlassInput" TargetType="ui:TextBox" BasedOn="{StaticResource GlassInput}"><Style.Resources><SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent"/><SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent"/><SolidColorBrush x:Key="TextControlFocusedBorderBrush" Color="Transparent"/><SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="Transparent"/></Style.Resources><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="8"/></Style>
+  <Style x:Key="QuickAddPane" TargetType="Border" BasedOn="{StaticResource GlassPane}"><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="7"/></Style>
+  <Style x:Key="CompactQuickAddPane" TargetType="Border" BasedOn="{StaticResource QuickAddPane}"><Setter Property="CornerRadius" Value="12"/><Setter Property="Padding" Value="5"/></Style>
+  <Style x:Key="CompactAddButton" TargetType="ui:Button" BasedOn="{StaticResource PrimaryGlassButton}"><Setter Property="CornerRadius" Value="10"/><Setter Property="Padding" Value="8,5"/><Setter Property="FontSize" Value="11"/><Setter Property="MinWidth" Value="40"/><Setter Property="MinHeight" Value="30"/></Style>
+  <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+    
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Background" Value="{DynamicResource InputGlass}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="Border.CornerRadius" Value="12"/>
+  </Style>
+  <Style TargetType="DatePicker" BasedOn="{StaticResource DefaultDatePickerStyle}">
+    
+    <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Border.CornerRadius" Value="12"/><Setter Property="Background" Value="{DynamicResource InputGlass}"/><Setter Property="BorderBrush" Value="{DynamicResource GlassEdge}"/><Setter Property="BorderThickness" Value="1"/>
+  </Style>
+  <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}"><Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/></Style>
+  <Style x:Key="ValidationMessage" TargetType="TextBlock"><Setter Property="Foreground" Value="#963C4C"/><Setter Property="FontSize" Value="11"/><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="2,5,2,2"/><Setter Property="AutomationProperties.LiveSetting" Value="Polite"/><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style>
+  <Style x:Key="TaskDateExpander" TargetType="Expander" BasedOn="{StaticResource DefaultExpanderStyle}">
+    <Setter Property="MinHeight" Value="0" /><Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander">
+      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Border x:Name="HeaderBorder" CornerRadius="8" BorderThickness="1" BorderBrush="Transparent">
+          <ToggleButton x:Name="HeaderToggle" IsChecked="{Binding IsExpanded,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}"
+            Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}"
+            Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
+            Padding="3,5" FocusVisualStyle="{x:Null}" Template="{StaticResource DefaultExpanderToggleButtonStyle}"
+            AutomationProperties.Name="{Binding Name.Label}" />
+        </Border>
+        <ContentPresenter x:Name="GroupContent" Grid.Row="1" ContentSource="Content" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Top" />
+      </Grid>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsExpanded" Value="True"><Setter TargetName="GroupContent" Property="Visibility" Value="Visible" /></Trigger>
+        <Trigger SourceName="HeaderToggle" Property="IsKeyboardFocused" Value="True"><Setter TargetName="HeaderBorder" Property="Background" Value="#20FFFFFF" /></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="{DynamicResource SecondaryInk}"/><Setter Property="Margin" Value="2,18,0,8"/></Style>
+  <Style x:Key="NavButton" TargetType="ui:Button" BasedOn="{StaticResource GlassButton}"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="Padding" Value="14,11"/><Setter Property="Margin" Value="0,3"/><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="MouseOverBorderBrush" Value="Transparent"/><Setter Property="PressedBorderBrush" Value="Transparent"/><Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource OnAccent}"/><Setter Property="PressedForeground" Value="{DynamicResource OnAccent}"/><Setter Property="MouseOverBackground" Value="{DynamicResource AccentHover}"/><Setter Property="PressedBackground" Value="{DynamicResource AccentPressed}"/><Setter Property="FontWeight" Value="SemiBold"/></DataTrigger></Style.Triggers></Style>
+  <DataTemplate x:Key="NavTemplate"><ui:Button Style="{StaticResource NavButton}" Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Title}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ui:FontIcon FontFamily="{x:Static glass:AppIcons.Family}" Glyph="{Binding Icon}" FontSize="18" /><TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding Count}" FontSize="12" Opacity=".65" VerticalAlignment="Center" /></Grid></ui:Button></DataTemplate>
+</ResourceDictionary>

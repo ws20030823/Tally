@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TaskDesk.csproj" />
+  <Project Path="Tests/TaskDesk.Checks.csproj" />
+</Solution>

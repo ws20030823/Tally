@@ -1,0 +1,49 @@
+# Build output and generated checks/previews
+**/[Bb]in/
+**/[Oo]bj/
+**/[Aa]rtifacts/
+[Tt]est[Rr]esults/
+test-data/
+*.log
+*.tmp
+*.bak
+*.dmp
+
+# IDE and machine-local settings
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+.codex/
+.agents/
+.aws/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local task data and preferences
+tasks.json
+tasks.json.*
+mini-window.json
+mini-window.json.*
+appearance.json
+appearance.json.*
+
+# Credentials and signing material
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+
+# Only the root README is published as Markdown
+*.[mM][dD]
+!/README.md
+
+# Superseded app artwork; current Tally artwork and icon font are kept
+/Assets/Icons/TaskDesk.png
+/Assets/Icons/TaskDesk.ico

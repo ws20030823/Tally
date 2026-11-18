@@ -1,0 +1,72 @@
+{
+  "collection": "https://www.iconfont.cn/collections/detail?cid=9402",
+  "name": "Ant Design 官方图标库",
+  "icons": [
+    {
+      "key": "Today",
+      "name": "calendar-check",
+      "iconfontId": 4766857,
+      "codepoint": "E900"
+    },
+    {
+      "key": "Important",
+      "name": "star",
+      "iconfontId": 4766954,
+      "codepoint": "E901"
+    },
+    {
+      "key": "Planned",
+      "name": "calendar",
+      "iconfontId": 4766858,
+      "codepoint": "E902"
+    },
+    {
+      "key": "AllTasks",
+      "name": "container",
+      "iconfontId": 4766438,
+      "codepoint": "E903"
+    },
+    {
+      "key": "Completed",
+      "name": "check-circle",
+      "iconfontId": 4765721,
+      "codepoint": "E904"
+    },
+    {
+      "key": "List",
+      "name": "unordered list",
+      "iconfontId": 4767060,
+      "codepoint": "E905"
+    },
+    {
+      "key": "Search",
+      "name": "search",
+      "iconfontId": 6598347,
+      "codepoint": "E906"
+    },
+    {
+      "key": "Add",
+      "name": "plus",
+      "iconfontId": 7834345,
+      "codepoint": "E907"
+    },
+    {
+      "key": "Close",
+      "name": "close",
+      "iconfontId": 4767096,
+      "codepoint": "E908"
+    },
+    {
+      "key": "Delete",
+      "name": "delete",
+      "iconfontId": 4766676,
+      "codepoint": "E909"
+    },
+    {
+      "key": "ImportantFilled",
+      "name": "star-fill",
+      "iconfontId": 4936673,
+      "codepoint": "E90A"
+    }
+  ]
+}
