@@ -6,6 +6,7 @@ using System.Windows.Automation;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -27,7 +28,11 @@ public partial class MainWindow : FluentWindow
     private readonly MiniWindowSettings miniSettings;
     private readonly string appearanceSettingsPath;
     private ResourceDictionary? palette;
-    private bool applyingTheme;
+    private bool applyingTheme,applyingOpacity;
+    private DispatcherTimer? opacitySaveTimer;
+    private WindowTransparency? transparency;
+    private HwndSource? miniCaptionSource;
+    public int CurrentOpacityPercent { get; private set; } = 100;
     public string CurrentTheme { get; private set; } = "warm";
     private Rect fullBounds;
     private TaskItem? fullSelection;
@@ -40,8 +45,13 @@ public partial class MainWindow : FluentWindow
         miniSettings=MiniWindowSettings.Load(miniSettingsPath);
         appearanceSettingsPath=Path.Combine(Path.GetDirectoryName(vm.DataPath)!,"appearance.json");
         ThemePicker.ItemsSource=AppearanceSettings.Themes;
-        ApplyTheme(AppearanceSettings.Load(appearanceSettingsPath).Theme,false);
-        Closed+=(_,_)=>{if(palette is not null)Application.Current?.Resources.MergedDictionaries.Remove(palette);};
+        var appearance=AppearanceSettings.Load(appearanceSettingsPath);
+        ApplyTheme(appearance.Theme,false);
+        ApplyOpacity(appearance.OpacityPercent,false);
+        SourceInitialized+=(_,_)=>{transparency=new WindowTransparency(this);ApplyOpacity(CurrentOpacityPercent,false);};
+        vm.ConfirmTaskDeletion=ConfirmTaskDeletion;
+        vm.MiniTaskAdded+=RevealMiniTask;
+        Closed+=(_,_)=>{DetachMiniCaptionHook();transparency?.Dispose();opacitySaveTimer?.Stop();vm.ConfirmTaskDeletion=null;vm.MiniTaskAdded-=RevealMiniTask;if(palette is not null)Application.Current?.Resources.MergedDictionaries.Remove(palette);};
         Loaded+=(_,_)=>
         {
             InitializeAccessibleControls();
@@ -73,7 +83,7 @@ public partial class MainWindow : FluentWindow
             MiniThemeButton.ToolTip=$"当前主题：{AppearanceSettings.Themes.Single(t=>t.Key==key).Title}；点击切换";
             if(persist&&!preview)
             {
-                try {new AppearanceSettings{Theme=key}.Save(appearanceSettingsPath);}
+                try {SaveAppearance();}
                 catch(Exception e) when(e is IOException or UnauthorizedAccessException)
                 {ViewModel.Status="主题已切换，但偏好未能保存："+e.Message;}
             }
@@ -81,11 +91,82 @@ public partial class MainWindow : FluentWindow
         finally {applyingTheme=false;}
     }
 
+    private void SaveAppearance() => new AppearanceSettings{Theme=CurrentTheme,OpacityPercent=CurrentOpacityPercent}.Save(appearanceSettingsPath);
+    private void OpacitySliderChanged(object sender,RoutedPropertyChangedEventArgs<double> e)
+    {
+        if(ReferenceEquals(e.OriginalSource,sender)&&!applyingOpacity&&appearanceSettingsPath is not null)ApplyOpacity((int)Math.Round(e.NewValue));
+    }
+    private void OpenOpacityPopup(object sender,RoutedEventArgs e)=>MiniOpacityPopup.IsOpen=!MiniOpacityPopup.IsOpen;
+    public void ApplyOpacity(int percent,bool persist=true)
+    {
+        percent=AppearanceSettings.NormalizeOpacity(percent);
+        try{transparency?.Apply(percent);}
+        catch(Win32Exception e){ViewModel.Status="透明度调整失败："+e.Message;return;}
+        applyingOpacity=true;
+        try
+        {
+            CurrentOpacityPercent=percent;OpacitySlider.Value=MiniOpacitySlider.Value=percent;
+            OpacityValueText.Text=$"{percent}%";MiniOpacityButton.Content=$"{percent}%";
+        }
+        finally{applyingOpacity=false;}
+        if(!persist||preview)return;
+        // Dragging updates the native window immediately; preference writes wait until dragging settles.
+        opacitySaveTimer??=new DispatcherTimer(TimeSpan.FromMilliseconds(400),DispatcherPriority.Background,(_,_)=>{
+            opacitySaveTimer!.Stop();
+            try{SaveAppearance();}catch(Exception e)when(e is IOException or UnauthorizedAccessException){ViewModel.Status="透明度已调整，但偏好未能保存："+e.Message;}
+        },Dispatcher);
+        opacitySaveTimer.Stop();opacitySaveTimer.Start();
+    }
+
+    private void OpenTaskComposer(object sender,RoutedEventArgs e) => ShowTaskComposer();
+    private void OpenMiniTaskEditor(object sender,RoutedEventArgs e)=>ShowMiniTaskEditor(null);
+    private void EditMiniTask(object sender,MouseButtonEventArgs e)
+    {
+        if(sender is FrameworkElement {DataContext:TaskItem task})ShowMiniTaskEditor(task);
+        e.Handled=true;
+    }
+    private void ShowMiniTaskEditor(TaskItem? task)
+    {
+        if(task is not null&&task==ViewModel.SelectedTask)ViewModel.SaveCommand.Execute(null);
+        var draft=new TaskEditorViewModel(ViewModel.Lists,task??new TaskItem{Title=ViewModel.MiniNewTitle,List=ViewModel.Lists[0]});
+        var dialog=new Controls.TaskEditorDialog(draft,task is null){Owner=this,Topmost=Topmost};
+        if(dialog.ShowDialog()==true)ViewModel.SaveMiniTask(draft,task);
+    }
+    private void RevealMiniTask(TaskItem task)
+    {
+        if(!IsMiniMode)return;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(()=>
+        {
+            if(!IsMiniMode)return;
+            MiniTaskList.ScrollIntoView(task);MiniNewTaskBox.Focus();
+        }));
+    }
+    private void ShowTaskComposer()
+    {
+        if(IsMiniMode)SetMiniMode(false);
+        ViewModel.StartAddingTaskCommand.Execute(null);
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(()=>NewTaskBox.Focus()));
+    }
+    private void SubmitNewTask(object sender,RoutedEventArgs e)
+    {
+        if(!string.IsNullOrEmpty(NewTaskDateFeedback.Text)){NewTaskDatePicker.Focus();return;}
+        ViewModel.CreateTaskCommand.Execute(null);
+        if(ViewModel.IsAddingTask)NewTaskBox.Focus();
+    }
+    private void CancelTaskComposer(object sender,RoutedEventArgs e)
+    {ViewModel.CancelAddingTaskCommand.Execute(null);ClearDateFeedback(NewTaskDatePicker);}
+    private void NewTaskTitleKeyDown(object sender,KeyEventArgs e)
+    {
+        if(e.Key==Key.Return){e.Handled=true;SubmitNewTask(sender,e);}
+    }
+    private void ClearNewTaskDate(object sender,RoutedEventArgs e)
+    {ViewModel.NewTaskDate=null;ClearDateFeedback(NewTaskDatePicker);}
     private void EnterMiniClick(object sender,RoutedEventArgs e) => SetMiniMode(true);
     private void ExitMiniClick(object sender,RoutedEventArgs e) => SetMiniMode(false);
     public void SetMiniMode(bool enabled)
     {
         if(enabled==IsMiniMode)return;
+        MiniOpacityPopup.IsOpen=false;
         if(enabled)
         {
             // Commit the full editor once; the Mini list only changes completion state.
@@ -114,8 +195,36 @@ public partial class MainWindow : FluentWindow
             if(fullSelection is not null&&ViewModel.TasksView.Contains(fullSelection))ViewModel.SelectedTask=fullSelection;
             if(fullWasMaximized)WindowState=WindowState.Maximized;
         }
+        DetachMiniCaptionHook();
+        if(enabled)
+        {
+            miniCaptionSource=HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+            miniCaptionSource?.AddHook(MiniCaptionHitTest);
+        }
         UpdateTitleBarNames();
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded,UpdateTitleBarNames);
+    }
+    private void DetachMiniCaptionHook()
+    {
+        if(miniCaptionSource is {IsDisposed:false})miniCaptionSource.RemoveHook(MiniCaptionHitTest);
+        miniCaptionSource=null;
+    }
+    private nint MiniCaptionHitTest(nint hwnd,int message,nint wParam,nint lParam,ref bool handled)
+    {
+        // The full title bar still owns the window hook after switching layouts.
+        // Route this Mini control to the client without changing drag/resize zones.
+        if(IsMiniMode&&message==0x0084)
+        {
+            var packed=lParam.ToInt64();
+            var screenPoint=new Point((short)(packed&0xffff),(short)((packed>>16)&0xffff));
+            foreach(var control in new[]{MiniThemeButton,MiniOpacityButton})
+            {
+                if(!control.IsVisible)continue;
+                var point=control.PointFromScreen(screenPoint);
+                if(new Rect(control.RenderSize).Contains(point)){handled=true;return 1;}
+            }
+        }
+        return 0;
     }
     private void RememberMiniBounds()
     {
@@ -126,6 +235,15 @@ public partial class MainWindow : FluentWindow
         try {miniSettings.Save(miniSettingsPath);}
         catch(Exception e) when(e is IOException or UnauthorizedAccessException)
         {ViewModel.Status="窗口位置未能保存，任务数据不受影响："+e.Message;}
+    }
+
+    private bool ConfirmTaskDeletion(TaskItem task)
+    {
+        var title=task==ViewModel.SelectedTask&&!string.IsNullOrWhiteSpace(ViewModel.EditTitle)?ViewModel.EditTitle.Trim():task.Title;
+        return System.Windows.MessageBox.Show(this,
+            $"确定删除任务“{title}”吗？\n任务及其子任务将一并删除，删除后无法撤销。",
+            "删除任务",System.Windows.MessageBoxButton.OKCancel,MessageBoxImage.Warning,
+            System.Windows.MessageBoxResult.Cancel)==System.Windows.MessageBoxResult.OK;
     }
 
     private void DeleteListClick(object sender, RoutedEventArgs e)
@@ -177,13 +295,13 @@ public partial class MainWindow : FluentWindow
     private void InitializeAccessibleControls()
     {
         UpdateTitleBarNames();
-        foreach(var picker in new[]{HistoryDatePicker,DueDatePicker,NewTaskDatePicker})
+        foreach(var picker in new[]{DueDatePicker,NewTaskDatePicker})
         {
             picker.ApplyTemplate();
             if(picker.Template.FindName("PART_Button",picker) is Button calendar)
             {
                 calendar.Content=new FontIcon { FontFamily=TaskDesk.Controls.AppIcons.Family, Glyph=TaskDesk.Controls.AppIcons.Planned, FontSize=16 };
-                NameControl(calendar,picker==HistoryDatePicker?"打开日期筛选日历":picker==NewTaskDatePicker?"打开新任务截止日期日历":"打开截止日期日历");
+                NameControl(calendar,picker==NewTaskDatePicker?"打开新任务截止日期日历":"打开截止日期日历");
             }
             if(picker.Template.FindName("PART_TextBox",picker) is DatePickerTextBox editor)
             {
@@ -218,7 +336,7 @@ public partial class MainWindow : FluentWindow
             foreach(var descendant in Descendants(child))yield return descendant;
         }
     }
-    private TextBlock DateFeedback(DatePicker picker)=>picker==HistoryDatePicker?HistoryDateFeedback:picker==NewTaskDatePicker?NewTaskDateFeedback:DueDateFeedback;
+    private TextBlock DateFeedback(DatePicker picker)=>picker==NewTaskDatePicker?NewTaskDateFeedback:DueDateFeedback;
     private void ClearDateFeedback(DatePicker picker)
     {
         // Selection events can arrive during InitializeComponent before the feedback elements exist.
@@ -258,12 +376,12 @@ public partial class MainWindow : FluentWindow
         {
             if(key is not (Key.N or Key.K or Key.S))return false;
             if(repeat)return true;
-            if(key==Key.N){if(IsMiniMode)SetMiniMode(false);NewTaskBox.Focus();}
-            else if(key==Key.K){if(IsMiniMode)SetMiniMode(false);SearchBox.Focus();SearchBox.SelectAll();}
+            if(key==Key.N)ShowTaskComposer();
+            else if(key==Key.K){if(IsMiniMode)SetMiniMode(false);ViewModel.IsAddingTask=false;SearchBox.Focus();SearchBox.SelectAll();}
             else ViewModel.SaveCommand.Execute(null);
             return true;
         }
-        if(key==Key.Escape){if(IsMiniMode)SetMiniMode(false);else ViewModel.CloseDetailsCommand.Execute(null);return true;}
+        if(key==Key.Escape){if(IsMiniMode)SetMiniMode(false);else if(ViewModel.IsAddingTask)ViewModel.IsAddingTask=false;else ViewModel.CloseDetailsCommand.Execute(null);return true;}
         return false;
     }
     private void WindowClosing(object? sender,CancelEventArgs e)
@@ -272,6 +390,13 @@ public partial class MainWindow : FluentWindow
         {
             var result=System.Windows.MessageBox.Show(this,"本次修改尚未保存。是否仍要退出？选择“否”可返回重试。","Tally",System.Windows.MessageBoxButton.YesNo,MessageBoxImage.Warning,System.Windows.MessageBoxResult.No);
             if(result!=System.Windows.MessageBoxResult.Yes){e.Cancel=true;return;}
+        }
+        MiniOpacityPopup.IsOpen=false;
+        if(!preview&&opacitySaveTimer?.IsEnabled==true)
+        {
+            opacitySaveTimer.Stop();
+            try{SaveAppearance();}catch(Exception error)when(error is IOException or UnauthorizedAccessException)
+            {ViewModel.Status="透明度偏好未能保存："+error.Message;}
         }
         if(IsMiniMode)RememberMiniBounds();
         ViewModel.Dispose();

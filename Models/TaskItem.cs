@@ -23,7 +23,8 @@ public partial class TaskItem : ObservableObject
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Metadata))] private string list = "工作项目";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Metadata)), NotifyPropertyChangedFor(nameof(IsOverdue))] private DateTime? dueDate;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(Metadata))] private int priority = 1;
-    [ObservableProperty] private bool isImportant;
+    // Retained only for round-tripping older task files; no active importance feature.
+    public bool IsImportant { get; set; }
     [ObservableProperty] private DateTime? todayDate;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsOverdue)), NotifyPropertyChangedFor(nameof(Metadata))] private bool isCompleted;
     private string notes = "";

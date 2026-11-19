@@ -30,22 +30,27 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly TaskDateGroupDescription dateGrouping;
     private DateTime day = DateTime.Today;
     private bool loading, refreshPending, disposed;
-    private TaskItem? deleted;
-    private int deletedIndex;
+    public Func<TaskItem,bool>? ConfirmTaskDeletion { get; set; }
     public ObservableCollection<TaskItem> Tasks { get; }
     public ObservableCollection<string> Lists { get; }
     public ObservableCollection<NavEntry> Navigation { get; } = [
-        new("day","今天",AppIcons.Today), new("important","重要任务",AppIcons.Important),
-        new("planned","计划任务",AppIcons.Planned), new("all","全部任务",AppIcons.AllTasks), new("done","已完成",AppIcons.Completed)
+        new("pending","待办",AppIcons.List), new("done","已完成",AppIcons.Completed), new("all","全部",AppIcons.AllTasks),
+        new("yesterday","昨天",AppIcons.Today), new("week","近一周",AppIcons.Planned), new("month","近一月",AppIcons.Planned),
+        new("day","今天",AppIcons.Today),
+        new("planned","计划任务",AppIcons.Planned)
     ];
+    public IEnumerable<NavEntry> StateNavigation => Navigation.Where(n=>n.Key is "pending" or "done" or "all");
+    public IEnumerable<NavEntry> TimeNavigation => new[]{"day","yesterday","week","month"}.Select(key=>Navigation.First(n=>n.Key==key));
     public ObservableCollection<NavEntry> CustomLists { get; } = [];
     public ListCollectionView TasksView { get; }
     public ListCollectionView MiniTasksView { get; }
     public ObservableCollection<NavEntry> MiniScopes { get; } = [];
     [ObservableProperty] private string miniScopeKey = "day";
     public bool MiniHasTasks => !MiniTasksView.IsEmpty;
-    public string MiniCountLabel => $"{MiniTasksView.Count} 项待办";
-    public string MiniEmptyHint => MiniScopeKey == "day" ? "今天没有待办，可切换到全部任务" : "这个清单的待办已全部完成";
+    public string MiniCountLabel => $"待办 {MiniTasksView.Cast<TaskItem>().Count(t=>!t.IsCompleted)} · 完成 {MiniTasksView.Cast<TaskItem>().Count(t=>t.IsCompleted)}";
+    public string MiniEmptyHint => MiniScopeKey == "day" ? "在上方记下今天要做的事" : "在上方添加任务，或切换时间范围";
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddMiniTaskCommand))] private string miniNewTitle = "";
+    public event Action<TaskItem>? MiniTaskAdded;
     public string DataPath => store.FilePath;
     public string[] SortOptions { get; } = ["默认排序", "优先级排序", "截止日期排序"];
     public string[] PriorityOptions { get; } = ["高优先级", "中优先级", "低优先级"];
@@ -54,21 +59,33 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDateFilter))] private DateTime? historyDate;
     public bool HasDateFilter => HistoryDate.HasValue;
     public string DateScopeLabel => DateModeIndex == 1 ? "按完成日期 · 仅已完成" : SortIndex == 1 ? "按优先级" : SortIndex == 2 ? "按截止日期" : "按创建日期";
-    [ObservableProperty] private string currentView = "day";
+    [ObservableProperty] private string currentView = "pending";
     [ObservableProperty] private string search = "";
     [ObservableProperty] private int sortIndex;
     [ObservableProperty] private string newTitle = "";
     [ObservableProperty] private string newListName = "";
     [ObservableProperty] private string newStepTitle = "";
     [ObservableProperty] private DateTime? newTaskDate;
-    [ObservableProperty] private bool reviewingYesterday;
+    [ObservableProperty] private bool isAddingTask;
+    [ObservableProperty] private string newTaskList = "";
+    [ObservableProperty] private string newTaskNotes = "";
+    [ObservableProperty] private int newTaskPriority = 1;
+    [ObservableProperty] private string newTaskFeedback = "";
+    public ObservableCollection<TaskStep> NewTaskSteps { get; } = [];
+    [ObservableProperty] private string newTaskStepTitle = "";
+    [RelayCommand] private void AddNewTaskStep()
+    {
+        if(string.IsNullOrWhiteSpace(NewTaskStepTitle))return;
+        if(NewTaskStepTitle.Trim().Length>80){NewTaskFeedback="子任务最多 80 个字符";return;}
+        NewTaskSteps.Add(new(){Title=NewTaskStepTitle.Trim()});NewTaskStepTitle="";
+    }
+    [RelayCommand] private void RemoveNewTaskStep(TaskStep? step) { if(step is not null)NewTaskSteps.Remove(step); }
+    private bool hasNewTaskDraft;
+    partial void OnNewTitleChanged(string value) => NewTaskFeedback = "";
+    partial void OnIsAddingTaskChanged(bool value) => Refresh();
     public bool IsPlannedView => CurrentView == "planned";
-    public int YesterdayCount => Tasks.Count(t => !t.IsCompleted && t.TodayDate?.Date == DateTime.Today.AddDays(-1));
-    public bool ShowYesterdayBanner => CurrentView == "day" && (YesterdayCount > 0 || ReviewingYesterday);
-    public string YesterdayLabel => ReviewingYesterday ? "正在查看昨天未完成的任务" : $"昨天还有 {YesterdayCount} 项未完成";
-    public string YesterdayAction => ReviewingYesterday ? "返回今天" : "查看";
-    public string EmptyTitle => !string.IsNullOrWhiteSpace(Search) ? "没有匹配的任务" : HasDateFilter ? "这一天没有记录" : ReviewingYesterday ? "昨天的任务已处理完" : "还没有任务";
-    public string EmptyHint => !string.IsNullOrWhiteSpace(Search) ? "搜索仅在当前视图内，可清除搜索或搜索全部任务" : HasDateFilter ? "试试查看全部日期" : ReviewingYesterday ? "可以返回今天，继续安排今天的事情" : "在上方记下第一件事";
+    public string EmptyTitle => !string.IsNullOrWhiteSpace(Search) ? "没有匹配的任务" : HasDateFilter ? "这一天没有记录" : "还没有任务";
+    public string EmptyHint => !string.IsNullOrWhiteSpace(Search) ? "搜索仅在当前视图内，可清除搜索或搜索全部任务" : HasDateFilter ? "试试查看全部日期" : "点击左侧“添加任务”，记下第一件事";
     public bool HasSearch => !string.IsNullOrWhiteSpace(Search);
     [ObservableProperty] private TaskItem? selectedTask;
     [ObservableProperty] private string status = "准备就绪";
@@ -81,8 +98,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private DateTime? editDate;
     [ObservableProperty] private int editPriority = 1;
     [ObservableProperty] private string editNotes = "";
-    [ObservableProperty] private bool editDay;
-    [ObservableProperty] private bool canUndo;
     public bool HasSelection => SelectedTask is not null;
     public bool HasTasks => TasksView.Cast<TaskItem>().Any();
     public int VisibleCount => TasksView.Cast<TaskItem>().Count();
@@ -103,11 +118,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         foreach (var task in Tasks) Attach(task);
         TasksView = new ListCollectionView(Tasks) { Filter = o => Matches((TaskItem)o) };
         MiniTasksView = new ListCollectionView(Tasks) {
-            Filter = o => o is TaskItem t && !t.IsCompleted && InView(t,MiniScopeKey ?? "day"),
+            Filter = o => o is TaskItem t && InView(t,MiniScopeKey ?? "day"),
             CustomSort = new TaskComparer(2,false)
         };
         SyncMiniScopes();
-        CustomLists.CollectionChanged += (_,_) => SyncMiniScopes();
         dateGrouping = new TaskDateGroupDescription(() => DateModeIndex == 1);
         TasksView.GroupDescriptions.Add(dateGrouping);
         saveTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(450), DispatcherPriority.Background, (_, _) => { saveTimer!.Stop(); Flush(); }, dispatcher);
@@ -120,19 +134,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private bool InView(TaskItem t, string view) => view switch
-    { "day" => t.TodayDate?.Date == DateTime.Today, "important" => t.IsImportant, "planned" => t.DueDate.HasValue,
+    { "pending" => !t.IsCompleted, "day" => TaskDateGroupDescription.GetDate(t,false)==DateTime.Today, "planned" => t.DueDate.HasValue,
+      "yesterday" => TaskDateGroupDescription.GetDate(t,false)==DateTime.Today.AddDays(-1),
+      "week" => CreatedWithin(t,7), "month" => CreatedWithin(t,30),
       "done" => t.IsCompleted, "all" => true, _ => "list:"+t.List == view };
-    private bool Matches(TaskItem t) => (CurrentView == "day" && ReviewingYesterday ? !t.IsCompleted && t.TodayDate?.Date == DateTime.Today.AddDays(-1) : InView(t,CurrentView)) && (DateModeIndex != 1 || t.IsCompleted) &&
+    private static bool CreatedWithin(TaskItem task,int days) => TaskDateGroupDescription.GetDate(task,false) is { } date &&
+        date>=DateTime.Today.AddDays(1-days)&&date<=DateTime.Today;
+    private bool Matches(TaskItem t) => InView(t,CurrentView) && (DateModeIndex != 1 || t.IsCompleted) &&
         (!HistoryDate.HasValue || TaskDateGroupDescription.GetDate(t,DateModeIndex == 1) == HistoryDate.Value.Date) && (string.IsNullOrWhiteSpace(Search) ||
         t.Title.Contains(Search,StringComparison.OrdinalIgnoreCase) || (t.Notes ?? string.Empty).Contains(Search,StringComparison.OrdinalIgnoreCase));
-    partial void OnCurrentViewChanged(string value) { ReviewingYesterday=false; DateModeIndex = value == "done" ? 1 : 0; HistoryDate = null; Refresh(); OnPropertyChanged(nameof(ViewTitle)); OnPropertyChanged(nameof(IsPlannedView)); }
-    partial void OnReviewingYesterdayChanged(bool value) => Refresh();
+    partial void OnCurrentViewChanged(string value) { DateModeIndex = value == "done" ? 1 : 0; HistoryDate = null; Refresh(); OnPropertyChanged(nameof(ViewTitle)); OnPropertyChanged(nameof(IsPlannedView)); }
     partial void OnMiniScopeKeyChanged(string value) => RefreshMini();
     private void SyncMiniScopes()
     {
         var key=MiniScopeKey;
         MiniScopes.Clear();
-        foreach(var entry in Navigation.Where(n=>n.Key is "day" or "all" or "important").Concat(CustomLists)) MiniScopes.Add(entry);
+        foreach(var scope in new[]{"all","day","yesterday","week","month"}) MiniScopes.Add(Navigation.First(n=>n.Key==scope));
         MiniScopeKey=MiniScopes.Any(n=>n.Key==key)?key:"day";
         RefreshMini();
     }
@@ -151,7 +168,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         loading = true;
         EditTitle=value?.Title??""; EditList=value?.List??Lists[0]; EditDate=value?.DueDate; EditPriority=value?.Priority??1;
-        EditNotes=value?.Notes??""; EditDay=value?.TodayDate?.Date==DateTime.Today; NewStepTitle="";
+        EditNotes=value?.Notes??""; NewStepTitle="";
         TitleFeedback=""; loading=false; OnPropertyChanged(nameof(HasSelection));
     }
     private void CommitDraft(TaskItem task)
@@ -165,7 +182,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
         if (Lists.Contains(EditList)) task.List=EditList;
         task.DueDate=EditDate?.Date; task.Priority=Math.Clamp(EditPriority,0,2); task.Notes=EditNotes;
-        task.TodayDate=EditDay?DateTime.Today:null;
     }
     private void Attach(TaskItem t) { t.AttachSteps(); t.PropertyChanged += TaskChanged; }
     private void TaskChanged(object? sender, PropertyChangedEventArgs e)
@@ -202,9 +218,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
         // Filtered-out tasks close naturally; do not choose a different task on behalf of the user.
         if(selected is not null && !TasksView.Contains(selected)) SelectedTask=null;
-        foreach(var n in Navigation.Concat(CustomLists)) { n.IsActive=n.Key==CurrentView; n.Count=Tasks.Count(t=>InView(t,n.Key)&&(n.Key=="done"||!t.IsCompleted)); }
+        foreach(var n in Navigation.Concat(CustomLists)) { n.IsActive=!IsAddingTask&&n.Key==CurrentView; n.Count=Tasks.Count(t=>InView(t,n.Key)&&(n.Key is "done" or "all" or "day" or "yesterday" or "week" or "month"||!t.IsCompleted)); }
         RefreshMini();
-        foreach(var p in new[]{nameof(HasTasks),nameof(VisibleCount),nameof(CompletedCount),nameof(Progress),nameof(CountLabel),nameof(ProgressLabel),nameof(EmptyTitle),nameof(EmptyHint),nameof(HasSearch),nameof(YesterdayCount),nameof(ShowYesterdayBanner),nameof(YesterdayLabel),nameof(YesterdayAction)}) OnPropertyChanged(p);
+        foreach(var p in new[]{nameof(HasTasks),nameof(VisibleCount),nameof(CompletedCount),nameof(Progress),nameof(CountLabel),nameof(ProgressLabel),nameof(EmptyTitle),nameof(EmptyHint),nameof(HasSearch)}) OnPropertyChanged(p);
     }
     public void CheckDay()
     {
@@ -212,19 +228,71 @@ public partial class MainViewModel : ObservableObject, IDisposable
         day=DateTime.Today; OnPropertyChanged(nameof(DateLabel));
         dateGrouping.RefreshLabels();
         foreach(var task in Tasks)task.RefreshDateLabels();
-        if(SelectedTask is not null){loading=true;EditDay=SelectedTask.TodayDate?.Date==day;loading=false;}
         Refresh(); Status="新的一天，今日清单已更新";
     }
-    [RelayCommand] private void Navigate(NavEntry? entry) { if(entry is null)return; if(SelectedTask is not null)CommitDraft(SelectedTask); CurrentView=entry.Key; }
+    [RelayCommand] private void Navigate(NavEntry? entry) { if(entry is null)return; if(SelectedTask is not null)CommitDraft(SelectedTask); IsAddingTask=false; CurrentView=entry.Key; }
+    [RelayCommand] private void StartAddingTask()
+    {
+        SelectedTask=null;
+        if(!hasNewTaskDraft)
+        {
+            NewTaskList=CurrentView.StartsWith("list:")?CurrentView[5..]:Lists[0];
+            NewTaskDate=null;NewTaskPriority=1;NewTaskNotes="";
+            hasNewTaskDraft=true;
+        }
+        if(!Lists.Contains(NewTaskList))NewTaskList=Lists[0];
+        NewTaskFeedback="";IsAddingTask=true;
+    }
+    [RelayCommand] private void CancelAddingTask()
+    {
+        NewTitle="";NewTaskNotes="";NewTaskDate=null;NewTaskFeedback="";NewTaskSteps.Clear();NewTaskStepTitle="";
+        hasNewTaskDraft=false;IsAddingTask=false;
+    }
+    [RelayCommand] private void CreateTask()
+    {
+        if(!IsAddingTask)return;
+        if(string.IsNullOrWhiteSpace(NewTitle)){NewTaskFeedback="请先填写任务内容";return;}
+        if(NewTitle.Trim().Length>100){NewTaskFeedback="任务内容最多 100 个字符";return;}
+        if(!string.IsNullOrWhiteSpace(NewTaskStepTitle))AddNewTaskStep();
+        if(!string.IsNullOrWhiteSpace(NewTaskStepTitle))return;
+        var task=new TaskItem {CreatedAt=DateTime.Now,Title=NewTitle.Trim(),
+            List=Lists.Contains(NewTaskList)?NewTaskList:Lists[0],Notes=NewTaskNotes,
+            DueDate=NewTaskDate?.Date,Priority=Math.Clamp(NewTaskPriority,0,2),Steps=new(NewTaskSteps.Select(s=>new TaskStep{Title=s.Title,IsCompleted=s.IsCompleted}))};
+        IsAddingTask=false;hasNewTaskDraft=false;
+        if(!InView(task,CurrentView))CurrentView="day";
+        AddTaskCore(task);
+        NewTaskDate=null;NewTaskNotes="";NewTaskFeedback="";NewTaskSteps.Clear();NewTaskStepTitle="";
+    }
     [RelayCommand] private void AddTask()
     {
         if(string.IsNullOrWhiteSpace(NewTitle)){Status="请先输入任务标题";return;}
         if(IsPlannedView && !NewTaskDate.HasValue){Status="请先选择截止日期，再添加计划任务";return;}
         if(SelectedTask is not null)CommitDraft(SelectedTask);
         var task=new TaskItem { CreatedAt=DateTime.Now, Title=NewTitle.Trim(), List=CurrentView.StartsWith("list:")?CurrentView[5..]:Lists[0],
-            TodayDate=CurrentView=="day"?DateTime.Today:null,DueDate=IsPlannedView?NewTaskDate?.Date:null,
-            IsImportant=CurrentView=="important" };
-        Attach(task); Tasks.Add(task); NewTitle="";Search="";HistoryDate=null;ReviewingYesterday=false;if(CurrentView=="done")CurrentView="all";DateModeIndex=0;
+            DueDate=IsPlannedView?NewTaskDate?.Date:null };
+        AddTaskCore(task);
+    }
+    private bool CanAddMiniTask() => !string.IsNullOrWhiteSpace(MiniNewTitle)&&MiniNewTitle.Trim().Length<=100;
+    [RelayCommand(CanExecute=nameof(CanAddMiniTask))] private void AddMiniTask()
+    {
+        if(!CanAddMiniTask())return;
+        SaveMiniTask(new TaskEditorViewModel(Lists,new TaskItem{Title=MiniNewTitle.Trim(),List=Lists[0]}),null);
+    }
+    public void SaveMiniTask(TaskEditorViewModel draft,TaskItem? task)
+    {
+        if(!draft.Validate())return;
+        var isNew=task is null;
+        if(!isNew&&!Tasks.Contains(task!))return;
+        if(task==SelectedTask&&task is not null)SelectedTask=null;
+        task??=new TaskItem{CreatedAt=DateTime.Now};
+        draft.ApplyTo(task);
+        if(isNew){Attach(task);Tasks.Add(task);MiniNewTitle="";if(!InView(task,MiniScopeKey))MiniScopeKey="day";}
+        Refresh();ScheduleSave();Status=isNew?"已添加任务":"任务已更新";
+        MiniTaskAdded?.Invoke(task);
+    }
+    private void AddTaskCore(TaskItem task)
+    {
+        Attach(task); Tasks.Add(task); NewTitle="";Search="";HistoryDate=null;if(CurrentView=="done")CurrentView="all";DateModeIndex=0;
         Refresh(); SelectedTask=task; ScheduleSave();Status="已添加任务";
     }
     [RelayCommand] private void AddList()
@@ -245,8 +313,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         SelectedTask=null;
         var moved=Tasks.Where(task=>task.List==entry.Title).ToList();
         foreach(var task in moved)task.List=destination;
-        // A task waiting for undo must also point to a list that still exists.
-        if(deleted?.List==entry.Title)deleted.List=destination;
         Lists.Remove(entry.Title);CustomLists.Remove(entry);
         if(CurrentView==entry.Key)CurrentView="list:"+destination;
         Refresh();OnPropertyChanged(nameof(ViewTitle));
@@ -254,18 +320,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ScheduleSave();
         Status=moved.Count==0?"已删除清单":$"已删除清单，{moved.Count} 项任务已移至“{destination}”";
     }
-    [RelayCommand] private void ToggleImportant(TaskItem? task) { if(task is not null)task.IsImportant=!task.IsImportant; }
-    [RelayCommand] private void DeleteTask()
+    [RelayCommand] private void DeleteTask(TaskItem? task)
     {
-        if(SelectedTask is not { } task)return;
-        CommitDraft(task); deleted=task;deletedIndex=Tasks.IndexOf(task);SelectedTask=null;
-        task.PropertyChanged-=TaskChanged;Tasks.Remove(task);CanUndo=true;Refresh();ScheduleSave();Status="任务已删除，可撤销最近一次删除";
-    }
-    [RelayCommand] private void UndoDelete()
-    {
-        if(deleted is null)return;
-        var task=deleted;Tasks.Insert(Math.Min(deletedIndex,Tasks.Count),task);Attach(task);deleted=null;CanUndo=false;
-        if(!InView(task,CurrentView))CurrentView="all";Search="";HistoryDate=null;if(!task.IsCompleted)DateModeIndex=0;Refresh();SelectedTask=task;ScheduleSave();Status="已恢复任务";
+        task??=SelectedTask;
+        if(task is null||!Tasks.Contains(task)||ConfirmTaskDeletion?.Invoke(task)!=true)return;
+        if(task==SelectedTask){CommitDraft(task);SelectedTask=null;}
+        task.PropertyChanged-=TaskChanged;Tasks.Remove(task);Refresh();ScheduleSave();Status="任务已删除";
     }
     [RelayCommand] private void AddStep()
     {
@@ -285,24 +345,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand] private void ClearHistoryDate() => HistoryDate=null;
     [RelayCommand] private void ClearSearch() => Search="";
     [RelayCommand] private void SearchAll() { CurrentView="all"; HistoryDate=null; DateModeIndex=0; }
-    [RelayCommand] private void ToggleYesterday() { Search=""; HistoryDate=null; DateModeIndex=0; ReviewingYesterday=!ReviewingYesterday; }
-    [RelayCommand] private void MoveToToday()
-    {
-        if(SelectedTask is not { } task)return;
-        EditDay=true; CommitDraft(task); ScheduleSave(); Refresh(); Status="已加入今天，截止日期保持原样";
-    }
     public bool RenameList(NavEntry entry, string name)
     {
         name=name.Trim();
         if(!CustomLists.Contains(entry) || name.Length is 0 or >24){Status="清单名称应为 1–24 个字符";return false;}
         if(name==entry.Title)return true;
         if(Lists.Any(x=>string.Equals(x,name,StringComparison.OrdinalIgnoreCase)&&x!=entry.Title)){Status="这个清单已经存在";return false;}
-        var old=entry.Title; var miniWasSelected=MiniScopeKey==entry.Key; var selected=SelectedTask; SelectedTask=null;
+        var old=entry.Title; var selected=SelectedTask; SelectedTask=null;
         foreach(var task in Tasks.Where(t=>t.List==old))task.List=name;
-        if(deleted?.List==old)deleted.List=name;
         Lists[Lists.IndexOf(old)]=name;
         CustomLists[CustomLists.IndexOf(entry)]=new("list:"+name,name,AppIcons.List);
-        if(miniWasSelected)MiniScopeKey="list:"+name;
         if(CurrentView==entry.Key)CurrentView="list:"+name;
         Refresh(); if(selected is not null&&TasksView.Contains(selected))SelectedTask=selected;
         ScheduleSave(); Status="已重命名清单"; return true;
